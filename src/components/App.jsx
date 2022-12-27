@@ -1,5 +1,4 @@
-import { Component } from 'react';
-
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyleComponent } from 'styles/GlobalStyles';
 import { theme } from 'styles/theme';
@@ -13,78 +12,58 @@ import { Title } from './Title/Title';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState(
+    () => JSON.parse(localStorage.getItem('contacts')) || []
+  );
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const parsedContacts = JSON.parse(contacts);
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-  componentDidUpdate(_, prevState) {
-    if (prevState.contacts !== this.setState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
-
-  onFormSubmit = data => {
+  const onFormSubmit = (name, number) => {
     const contact = {
-      ...data,
+      name,
+      number,
       id: nanoid(),
     };
-    const isAtList = this.state.contacts.find(
-      contact => contact.name === data.name
-    );
+    const isAtList = contacts.find(contact => contact.name === name);
     if (isAtList) {
       alert('Already in list');
       return;
     }
-    this.setState(prevState => ({
-      contacts: [...prevState.contacts, contact],
-    }));
+    setContacts([...contacts, contact]);
   };
 
-  deleteContact = id => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== id),
-    }));
+  const deleteContact = id => {
+    setContacts(contacts.filter(contact => contact.id !== id));
   };
 
-  onInputChange = event => {
-    this.setState({
+  const onInputChange = event => {
+    setFilter({
       filter: event.currentTarget.value,
     });
   };
 
-  filteredContacts = () => {
-    const { contacts, filter } = this.state;
+  const filteredContacts = () => {
     return contacts.filter(contact =>
       contact.name.toLowerCase().includes(filter.toLowerCase())
     );
   };
 
-  render() {
-    const filteredContacts = this.filteredContacts();
-    return (
-      <ThemeProvider theme={theme}>
-        <Container>
-          <MainTitle title="Phonebook ☎" />
-          <ContactForm onFormSubmit={this.onFormSubmit} btnText="Create" />
-          <Title title="Contacts 📞" />
-          <Filter onInputChange={this.onInputChange} />
-          <ContactList
-            data={filteredContacts}
-            deleteContact={this.deleteContact}
-          />
-          <GlobalStyleComponent />
-        </Container>
-      </ThemeProvider>
-    );
-  }
-}
+  const filteredContact = filteredContacts();
+
+  return (
+    <ThemeProvider theme={theme}>
+      <Container>
+        <MainTitle title="Phonebook ☎" />
+        <ContactForm onFormSubmit={onFormSubmit} />
+        <Title title="Contacts 📞" />
+        <Filter onInputChange={onInputChange} />
+        <ContactList data={filteredContact} deleteContact={deleteContact} />
+        <GlobalStyleComponent />
+      </Container>
+    </ThemeProvider>
+  );
+};
